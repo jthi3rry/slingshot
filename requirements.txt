@@ -1,0 +1,2 @@
+elasticsearch>=1.2.0
+six==1.8.0
