@@ -195,6 +195,11 @@ All contributions and comments are welcome. Simply create a pull request or repo
 Changelog
 =========
 
+v0.0.2
+------
+* Fix six requirement to minimum version instead of exact version
+
+
 v0.0.1
 ------
 * Initial
