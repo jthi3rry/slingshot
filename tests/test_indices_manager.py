@@ -80,7 +80,10 @@ def with_managed_index(index_name, config=None, docs=None):
             try:
                 f(self, *args, **kwargs)
             finally:
-                self.client.indices.delete(index_name)
+                try:
+                    self.client.indices.delete(index_name)
+                except:
+                    pass
         return decorator
     return wrapper
 
@@ -115,11 +118,11 @@ class TestIndicesManagerClient(unittest.TestCase):
     def test_real_name(self):
         real_names = self.client.indices_manager.real_names('slingshot.write')
         self.assertEqual(1, len(real_names))
-
         self.assertEqual([real_names[0]], self.client.indices_manager.real_names(real_names[0]))
 
         with self.assertRaises(IndexDoesNotExist):
             self.client.indices_manager.real_names('does_not_exist')
+            raise Exception("Bla")
 
     @with_managed_index("slingshot", CONFIG, DOCS)
     def test_has_alias(self):
@@ -150,12 +153,11 @@ class TestIndicesManagerClient(unittest.TestCase):
         self.assertTrue(self.client.indices_manager.has_alias('slingshot', 'slingshot.renamed_alias'))
 
     @with_managed_index("slingshot", CONFIG, DOCS)
+    @with_unmanaged_index('slingshot_tmp')
     def test_move_alias(self):
-        self.client.indices.create('slingshot_tmp')
         self.client.indices_manager.move_alias('slingshot', 'slingshot_tmp', 'slingshot.test_alias')
         self.assertFalse(self.client.indices_manager.has_alias('slingshot', 'slingshot.test_alias'))
         self.assertTrue(self.client.indices_manager.has_alias('slingshot_tmp', 'slingshot.test_alias'))
-        self.client.indices.delete('slingshot_tmp')
 
     @with_managed_index("slingshot", CONFIG, DOCS)
     @with_unmanaged_index('slingshot_tmp')
@@ -185,7 +187,14 @@ class TestIndicesManagerClient(unittest.TestCase):
     def test_copy(self):
         self.client.indices_manager.copy('slingshot', 'slingshot_tmp')
         self.client.indices.refresh('slingshot_tmp')
-        self.assertEqual(len(list(scan(self.client, index='slingshot'))), len(list(scan(self.client, index='slingshot_tmp'))))
+        self.assertEqual(self.client.count('slingshot')['count'], self.client.count('slingshot_tmp')['count'])
+
+    @with_managed_index("slingshot", CONFIG, DOCS)
+    @with_unmanaged_index('slingshot_tmp')
+    def test_parallel_copy(self):
+        self.client.indices_manager.copy('slingshot', 'slingshot_tmp', parallel=True, bulk_kwargs={'chunk_size': 2})
+        self.client.indices.refresh('slingshot_tmp')
+        self.assertEqual(self.client.count('slingshot')['count'], self.client.count('slingshot_tmp')['count'])
 
     @with_managed_index("slingshot", CONFIG, DOCS)
     @with_unmanaged_index('slingshot_tmp')
@@ -209,8 +218,7 @@ class TestIndicesManagerClient(unittest.TestCase):
     def test_copy_with_ignore_types(self):
         self.client.indices_manager.copy('slingshot', 'slingshot_tmp', ignore_types=['employee'])
         self.client.indices.refresh('slingshot_tmp')
-        docs = list(scan(self.client, index='slingshot_tmp'))
-        self.assertEqual(1, len(docs))
+        self.assertEqual(1, self.client.count('slingshot_tmp')['count'])
 
     def test_create(self):
         try:
@@ -235,13 +243,11 @@ class TestIndicesManagerClient(unittest.TestCase):
     @with_managed_index("slingshot", CONFIG, DOCS)
     def test_migrate(self):
         real_names = self.client.indices_manager.real_names('slingshot')
-        docs = list(scan(self.client, index='slingshot'))
-        self.assertEqual(3, len(docs))
+        self.assertEqual(3, self.client.count('slingshot')['count'])
         self.client.indices_manager.migrate('slingshot', CONFIG)
         self.assertNotEqual(real_names, self.client.indices_manager.real_names('slingshot'))
         self.client.indices.refresh('slingshot')
-        docs = list(scan(self.client, index='slingshot'))
-        self.assertEqual(3, len(docs))
+        self.assertEqual(3, self.client.count('slingshot')['count'])
         self.client.indices.refresh('slingshot')
 
     @with_unmanaged_index("slingshot")

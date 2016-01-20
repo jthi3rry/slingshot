@@ -4,6 +4,7 @@ import six
 from copy import deepcopy
 from elasticsearch import helpers
 from elasticsearch.client.utils import NamespacedClient, query_params
+
 from .exceptions import IndexDoesNotExist, IndexAlreadyExists, SameIndex, IndexAlreadyManaged
 from slingshot.exceptions import IndexNotManaged
 
@@ -17,14 +18,13 @@ class IndicesManagerClient(NamespacedClient):
         return "{}.write".format(index)
 
     def real_names(self, alias):
-        if self.client.indices.exists_alias(alias):
-            return list(self.client.indices.get_alias(alias))
-        elif self.client.indices.exists(alias):
-            return [alias]
-        raise IndexDoesNotExist("alias or index '{}' doesn't exist".format(alias))
+        names = list(self.client.indices.get_aliases(alias).keys())
+        if not names:
+            raise IndexDoesNotExist("alias or index '{}' doesn't exist".format(alias))
+        return names
 
     def has_alias(self, index, alias):
-        return self.client.indices.exists_alias(alias, index=index)
+        return self.client.indices.exists_alias(name=alias, index=index)
 
     def has_read_alias(self, index):
         return self.has_alias(index, self._read_alias(index))
@@ -64,7 +64,7 @@ class IndicesManagerClient(NamespacedClient):
         else:
             return self.move_alias(source_index, target_index, alias)
 
-    def copy(self, source_index, target_index, transform=None, ignore_types=None):
+    def copy(self, source_index, target_index, transform=None, ignore_types=None, scan_kwargs={}, bulk_kwargs={'chunk_size': 1000}, parallel=False):
         if source_index == target_index:
             raise SameIndex("source_index and target_index must be different")
 
@@ -76,7 +76,7 @@ class IndicesManagerClient(NamespacedClient):
 
         transform = transform or (lambda doc: doc)
         ignore_types = ignore_types or []
-        hits = helpers.scan(self.client, index=source_index)
+        hits = helpers.scan(self.client, index=source_index, fields=('_source', '_parent', '_routing', '_timestamp'), **scan_kwargs)
 
         def _process_hits(hits, index):
             for doc in hits:
@@ -84,13 +84,21 @@ class IndicesManagerClient(NamespacedClient):
                     continue
                 doc['_index'] = index
                 doc['_op_type'] = 'create'
+                if 'fields' in doc:
+                    doc.update(doc.pop('fields'))
                 doc = transform(doc)
-                if not doc:
+                if doc is None:
+                    # drop doc
                     continue
                 yield doc
 
-        return helpers.bulk(self.client, _process_hits(hits, target_index), chunk_size=1000, stats_only=True)
-
+        # Make sure percolators are copied across too
+        helpers.reindex(self.client, source_index=source_index, target_index=target_index, scan_kwargs={"doc_type": ".percolator"})
+        if parallel:
+            for _ in helpers.parallel_bulk(self.client, _process_hits(hits, target_index), **bulk_kwargs):
+                pass
+        else:
+            helpers.bulk(self.client, _process_hits(hits, target_index), stats_only=True, **bulk_kwargs)
 
     def _generate_name(self, name):
         return ".".join([name, str(int(time.time() * 1000))])
@@ -117,7 +125,7 @@ class IndicesManagerClient(NamespacedClient):
             raise IndexDoesNotExist("index '{}' does not exist".format(index))
 
         if self.is_managed(index):
-            raise IndexAlreadyManaged("index '{}' is already managed")
+            raise IndexAlreadyManaged("index '{}' is already managed".format(index))
 
         self.add_alias(index, self._write_alias(index))
 
@@ -126,7 +134,7 @@ class IndicesManagerClient(NamespacedClient):
             raise IndexDoesNotExist("index '{}' does not exist".format(index))
 
         if not self.is_managed(index):
-            raise IndexNotManaged("index '{}' is not managed, call manage first")
+            raise IndexNotManaged("index '{}' is not managed, call manage first".format(index))
 
         source_index = ','.join(self.real_names(index))
         target_index = self._generate_name(index)
