@@ -7,11 +7,12 @@ env:
 
 install:
   - mkdir /tmp/elasticsearch
-  - wget -O - http://s3-eu-west-1.amazonaws.com/build-eu.elasticsearch.org/origin/master/nightly/JDK7/elasticsearch-latest-SNAPSHOT.tar.gz | tar xz --directory=/tmp/elasticsearch --strip-components=1
+  - wget -O - https://download.elastic.co/elasticsearch/elasticsearch/elasticsearch-1.7.4.tar.gz | tar xz --directory=/tmp/elasticsearch --strip-components=1
   - pip install tox coveralls
 
 before_script:
   - /tmp/elasticsearch/bin/elasticsearch -d -D es.path.data=/tmp -D es.discovery.zen.ping.multicast.enabled=false -Des.node.bench=true
+  - sleep 5
 
 script:
   - tox

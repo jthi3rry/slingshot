@@ -40,7 +40,7 @@ Instantiation
 
     from weakref import proxy
     from elasticsearch.client import Elasticsearch
-    from slingshot.indices_manager import IndiciesManagerClient
+    from slingshot.indices_manager import IndicesManagerClient
 
     es = Elasticsearch()
     es.indices_manager = IndicesManagerClient(proxy(es))
@@ -154,39 +154,6 @@ Run the tests::
 
     tox
 
-Future Plans
-============
-
-Command Line Interface
-----------------------
-
-Having an easy API for migrating indices can be useful by itself for python projects. It would be fairly easy to wrap it in a Django command or some other python framework.
-
-However, this can aso be useful for the deployment of an application that is not written in python, or one written in python that could use something out of the box.
-
-The plan is for slingshot to provide a command line interface as well as a programmatic API to support both use-cases.
-
-This is how a command line interface could look like::
-
-    $ slingshot indices_manager create my_index --body=settings.json
-    $ slingshot indices_manager migrate my_index --body=settings.yml --transform="path.to.module:transform" --ignore_types=type_1,type_2
-    $ slingshot indices_manager manage my_existing_index
-
-Since the official ElasticSearch python client provides a very clean and consistent low-level interface, there is no reasons why this command line tool could not interface its methods in the same way::
-
-    $ slingshot indices delete my_index
-    $ slingshot cluster health my_index
-
-Hosts could be managed by a ./hosts or ~/.slingshot/hosts or passed directly as a command line argument::
-
-    $ slingshot my_host indices create my_index
-
-or::
-
-    $ slingshot cluster health my_index --host=http://example.org:9200/
-
-Feel free to comment on the proposed interface or to contribute!
-
 Contributions
 =============
 
@@ -194,6 +161,12 @@ All contributions and comments are welcome. Simply create a pull request or repo
 
 Changelog
 =========
+
+v0.0.3
+------
+* Fix compatibility issues with latest versions of elasticsearch-py (<2.0.0)
+* Add support for `parallel_bulk` when migrating/copying
+* Reindex percolators when migrating/copying
 
 v0.0.2
 ------
