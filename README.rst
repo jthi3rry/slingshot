@@ -162,6 +162,10 @@ All contributions and comments are welcome. Simply create a pull request or repo
 Changelog
 =========
 
+v0.0.4
+------
+* Allow passing create and copy kwargs to migrate
+
 v0.0.3
 ------
 * Fix compatibility issues with latest versions of elasticsearch-py (<2.0.0)
