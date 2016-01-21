@@ -92,13 +92,14 @@ class IndicesManagerClient(NamespacedClient):
                     continue
                 yield doc
 
-        # Make sure percolators are copied across too
-        helpers.reindex(self.client, source_index=source_index, target_index=target_index, scan_kwargs={"doc_type": ".percolator"})
         if parallel:
             for _ in helpers.parallel_bulk(self.client, _process_hits(hits, target_index), **bulk_kwargs):
                 pass
         else:
             helpers.bulk(self.client, _process_hits(hits, target_index), stats_only=True, **bulk_kwargs)
+
+        # Make sure percolators are copied across too
+        helpers.reindex(self.client, source_index=source_index, target_index=target_index, scan_kwargs={"doc_type": ".percolator"})
 
     def _generate_name(self, name):
         return ".".join([name, str(int(time.time() * 1000))])
