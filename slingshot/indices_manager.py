@@ -129,7 +129,7 @@ class IndicesManagerClient(NamespacedClient):
 
         self.add_alias(index, self._write_alias(index))
 
-    def migrate(self, index, body=None, transform=None, ignore_types=None, keep_source=False):
+    def migrate(self, index, body=None, transform=None, ignore_types=None, keep_source=False, create_kwargs={}, copy_kwargs={}):
         if not self.client.indices.exists(index):
             raise IndexDoesNotExist("index '{}' does not exist".format(index))
 
@@ -140,10 +140,10 @@ class IndicesManagerClient(NamespacedClient):
         target_index = self._generate_name(index)
         target_body = deepcopy(body) if isinstance(body, dict) else json.loads(body) if isinstance(body, six.string_types) else None
 
-        self.client.indices.create(target_index, target_body)
+        self.client.indices.create(target_index, target_body, **create_kwargs)
         self.client.indices.refresh(target_index)
         self.swap_alias(source_index, target_index, self._write_alias(index))
-        self.copy(source_index, target_index, transform=transform, ignore_types=ignore_types)
+        self.copy(source_index, target_index, transform=transform, ignore_types=ignore_types, **copy_kwargs)
         self.swap_alias(source_index, target_index, self._read_alias(index))
         if not keep_source:
             self.client.indices.delete(source_index)

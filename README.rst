@@ -2,23 +2,11 @@
 Slingshot
 =========
 
-.. image:: https://pypip.in/version/slingshot/badge.svg
-    :target: https://pypi.python.org/pypi/slingshot/
+.. image:: https://travis-ci.org/jthi3rry/slingshot.svg?branch=master
+    :target: https://travis-ci.org/jthi3rry/slingshot
 
-.. image:: https://pypip.in/format/slingshot/badge.svg
-    :target: https://pypi.python.org/pypi/slingshot/
-
-.. image:: https://travis-ci.org/OohlaLabs/slingshot.svg?branch=master
-    :target: https://travis-ci.org/OohlaLabs/slingshot
-
-.. image:: https://coveralls.io/repos/OohlaLabs/slingshot/badge.png?branch=master
-    :target: https://coveralls.io/r/OohlaLabs/slingshot
-
-.. image:: https://pypip.in/py_versions/slingshot/badge.svg
-    :target: https://pypi.python.org/pypi/slingshot/
-
-.. image:: https://pypip.in/license/slingshot/badge.svg
-    :target: https://pypi.python.org/pypi/slingshot/
+.. image:: https://coveralls.io/repos/jthi3rry/slingshot/badge.png?branch=master
+    :target: https://coveralls.io/r/jthi3rry/slingshot
 
 Extension for the official ElasticSearch python client providing an ``indices_manager`` to create and manage indices with read and write aliases, and perform no-downtime migrations.
 
@@ -161,6 +149,10 @@ All contributions and comments are welcome. Simply create a pull request or repo
 
 Changelog
 =========
+
+v0.0.4
+------
+* Allow passing create and copy kwargs to migrate
 
 v0.0.3
 ------
