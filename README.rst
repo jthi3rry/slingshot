@@ -150,6 +150,10 @@ All contributions and comments are welcome. Simply create a pull request or repo
 Changelog
 =========
 
+v0.0.5
+------
+* Reindex percolators after migrating data
+
 v0.0.4
 ------
 * Allow passing create and copy kwargs to migrate
